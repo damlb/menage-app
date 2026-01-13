@@ -44,9 +44,10 @@ function isSunday(date: Date): boolean {
 function getStatusColor(code: string | undefined): string {
   switch (code) {
     case 'a-faire': return 'bg-white dark:bg-gray-800 border-l-gray-400'
-    case 'en-cours': return 'bg-blue-50 dark:bg-blue-900/30 border-l-blue-500'
-    case 'termine': return 'bg-amber-50 dark:bg-amber-900/30 border-l-amber-500'
-    case 'valide': return 'bg-green-50 dark:bg-green-900/30 border-l-green-500'
+    case 'verifie-agent': return 'bg-amber-50 dark:bg-amber-900/30 border-l-amber-500'
+    case 'probleme': return 'bg-red-50 dark:bg-red-900/30 border-l-red-500'
+    case 'verifie-concierge': return 'bg-green-50 dark:bg-green-900/30 border-l-green-500'
+    case 'rejete-concierge': return 'bg-orange-50 dark:bg-orange-900/30 border-l-orange-500'
     default: return 'bg-white dark:bg-gray-800 border-l-gray-400'
   }
 }
@@ -54,9 +55,10 @@ function getStatusColor(code: string | undefined): string {
 function getStatusBadge(code: string | undefined): { label: string; className: string } {
   switch (code) {
     case 'a-faire': return { label: 'À faire', className: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }
-    case 'en-cours': return { label: 'En cours', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' }
-    case 'termine': return { label: 'Terminé', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' }
-    case 'valide': return { label: 'Validé', className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' }
+    case 'verifie-agent': return { label: 'Vérifié', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' }
+    case 'probleme': return { label: 'Problème', className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }
+    case 'verifie-concierge': return { label: 'Validé', className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' }
+    case 'rejete-concierge': return { label: 'Rejeté', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' }
     default: return { label: 'À faire', className: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }
   }
 }
