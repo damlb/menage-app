@@ -70,12 +70,29 @@ export const useMenageStore = create<MenageState>()(
       loading: false,
       error: null,
 
-      loadMenages: async (agentId: string) => {
+      loadMenages: async (authId: string) => {
         set({ loading: true, error: null })
-        
+
         try {
-          console.log("Chargement ménages pour agent:", agentId)
-          
+          console.log("Chargement ménages pour auth_id:", authId)
+
+          // Récupérer l'ID utilisateur et ses zones depuis auth_id
+          const { data: agentData, error: agentError } = await supabase
+            .from("users")
+            .select("id, zones_assignees")
+            .eq("auth_id", authId)
+            .single()
+
+          if (agentError || !agentData) {
+            console.error("Utilisateur non trouvé:", agentError)
+            set({ error: "Utilisateur non trouvé", loading: false })
+            return
+          }
+
+          const agentId = agentData.id
+          const zonesAgent: string[] = agentData.zones_assignees || []
+          console.log("Agent ID trouvé:", agentId)
+
           const { data, error: menagesError } = await supabase
             .from("menages")
             .select(`
@@ -97,9 +114,9 @@ export const useMenageStore = create<MenageState>()(
               date_verification_agent,
               date_verification_concierge,
               appartement:appartements(
-                id, 
-                nom, 
-                diminutif, 
+                id,
+                nom,
+                diminutif,
                 residence_id,
                 residence:residences(id, nom, diminutif, zone_id)
               ),
@@ -117,15 +134,6 @@ export const useMenageStore = create<MenageState>()(
 
           const menagesList = (data ?? []) as unknown as Menage[]
           console.log("Ménages chargés:", menagesList.length)
-
-          // Charger les zones de l'agent
-          const { data: userData } = await supabase
-            .from("users")
-            .select("zones_assignees")
-            .eq("id", agentId)
-            .single()
-
-          const zonesAgent: string[] = userData?.zones_assignees || []
 
           // Charger les résidences des zones de l'agent
           let residencesList: Residence[] = []
