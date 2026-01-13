@@ -244,16 +244,12 @@ export default function MenageVerification({ menageId, onClose }: Props) {
             console.log('Concierge ID trouvé:', conciergeId)
 
             if (conciergeId) {
-              let contenu = `🔔 Vérification du ménage: ${apptName}\n`
-              contenu += `📅 Date: ${formatDateLong(date)}\n`
-              contenu += `📋 Type: ${typeBadge.fullLabel}\n\n`
-
+              let contenu = `${apptName} - ${formatDateLong(date)}\n\n`
               if (hasCommentaire) {
-                contenu += `💬 Commentaire de l'agent:\n${commentaireAgent}\n\n`
+                contenu += commentaireAgent
               }
-
               if (hasPhotos) {
-                contenu += `📷 ${photos.length} photo(s) jointe(s)\n`
+                contenu += `${hasCommentaire ? '\n\n' : ''}📷 ${photos.length} photo(s)`
               }
 
               const { error: messageError } = await supabase
