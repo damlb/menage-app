@@ -195,22 +195,41 @@ export default function MenageVerification({ menageId, onClose }: Props) {
         const { data: { user } } = await supabase.auth.getUser()
 
         if (user) {
-          // Trouver le concierge de la zone (admin avec cette zone assignée)
-          const zoneId = menage.appartement?.residence?.zone_id
+          // Trouver la zone via la résidence de l'appartement
+          let zoneId: string | null = menage.appartement?.residence?.zone_id || null
+
+          // Si zone_id pas en cache, le récupérer depuis la BDD
+          if (!zoneId && menage.appartement?.residence_id) {
+            const { data: residenceData } = await supabase
+              .from('residences')
+              .select('zone_id')
+              .eq('id', menage.appartement.residence_id)
+              .single()
+            zoneId = residenceData?.zone_id || null
+          }
+
+          console.log('Zone ID pour message:', zoneId)
+
           let conciergeId: string | null = null
 
           if (zoneId) {
-            const { data: conciergeData } = await supabase
+            // Chercher un admin actif avec cette zone assignée
+            const { data: conciergeData, error: conciergeError } = await supabase
               .from('users')
               .select('id')
               .eq('role', 'admin')
               .eq('actif', true)
               .contains('zones_assignees', [zoneId])
               .limit(1)
-              .single()
 
-            conciergeId = conciergeData?.id || null
+            console.log('Recherche concierge:', { conciergeData, conciergeError })
+
+            if (conciergeData && conciergeData.length > 0) {
+              conciergeId = conciergeData[0].id
+            }
           }
+
+          console.log('Concierge ID trouvé:', conciergeId)
 
           if (conciergeId) {
             let contenu = `🔔 Vérification du ménage: ${apptName}\n`
@@ -225,7 +244,7 @@ export default function MenageVerification({ menageId, onClose }: Props) {
               contenu += `📷 ${photos.length} photo(s) jointe(s)\n`
             }
 
-            await supabase
+            const { error: messageError } = await supabase
               .from('messages')
               .insert({
                 expediteur_id: user.id,
@@ -243,6 +262,14 @@ export default function MenageVerification({ menageId, onClose }: Props) {
                   type: 'probleme_menage'
                 }
               })
+
+            if (messageError) {
+              console.error('Erreur envoi message:', messageError)
+            } else {
+              console.log('Message envoyé au concierge:', conciergeId)
+            }
+          } else {
+            console.warn('Aucun concierge trouvé pour la zone:', zoneId)
           }
         }
       }
