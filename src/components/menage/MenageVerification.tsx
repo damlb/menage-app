@@ -256,7 +256,6 @@ export default function MenageVerification({ menageId, onClose }: Props) {
                 contenu += `📷 ${photos.length} photo(s) jointe(s)\n`
               }
 
-              const now = new Date().toISOString()
               const { error: messageError } = await supabase
                 .from('messages')
                 .insert({
@@ -264,20 +263,10 @@ export default function MenageVerification({ menageId, onClose }: Props) {
                   destinataire_id: conciergeId,
                   sujet: `⚠️ Problème signalé: ${apptName}`,
                   contenu: contenu,
-                  priorite: 'urgent',
+                  priorite: 'urgente',
                   lu: false,
                   archive: false,
-                  private: true,
-                  topic: 'menage',
-                  extension: 'probleme',
-                  inserted_at: now,
-                  updated_at: now,
-                  payload: {
-                    menage_id: menageId,
-                    appartement: apptName,
-                    photos: hasPhotos ? photos : null,
-                    type: 'probleme_menage'
-                  }
+                  date_affichage: new Date().toISOString().split('T')[0]
                 })
 
               if (messageError) {
