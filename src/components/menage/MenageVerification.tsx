@@ -178,7 +178,7 @@ export default function MenageVerification({ menageId, onClose }: Props) {
           photos_agent: photos.length > 0 ? photos : null,
           validation_id: statusData.id,
           probleme: hasProbleme,
-          date_verification_agent: new Date().toISOString(),
+          date_verification_agent: new Date().toLocaleString('sv-SE', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }).replace(' ', 'T'),
           updated_at: new Date().toISOString()
         })
         .eq('id', menageId)
@@ -456,19 +456,41 @@ export default function MenageVerification({ menageId, onClose }: Props) {
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Début</label>
                 <input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
                   value={heureDebut}
-                  onChange={(e) => setHeureDebut(e.target.value)}
-                  className="w-full h-11 px-3 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^0-9:]/g, '')
+                    if (val.length === 2 && !val.includes(':') && heureDebut.length < val.length) {
+                      val = val + ':'
+                    }
+                    if (val.length <= 5) {
+                      setHeureDebut(val)
+                    }
+                  }}
+                  placeholder="HH:MM"
+                  maxLength={5}
+                  className="w-full h-11 px-3 text-sm text-center font-medium bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Fin</label>
                 <input
-                  type="time"
+                  type="text"
+                  inputMode="numeric"
                   value={heureFin}
-                  onChange={(e) => setHeureFin(e.target.value)}
-                  className="w-full h-11 px-3 text-sm bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  onChange={(e) => {
+                    let val = e.target.value.replace(/[^0-9:]/g, '')
+                    if (val.length === 2 && !val.includes(':') && heureFin.length < val.length) {
+                      val = val + ':'
+                    }
+                    if (val.length <= 5) {
+                      setHeureFin(val)
+                    }
+                  }}
+                  placeholder="HH:MM"
+                  maxLength={5}
+                  className="w-full h-11 px-3 text-sm text-center font-medium bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
             </div>
