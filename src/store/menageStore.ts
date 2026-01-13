@@ -29,6 +29,7 @@ export interface Menage {
       id: string
       nom: string
       diminutif: string
+      zone_id: string
     } | null
   } | null
   type_menage: {
@@ -100,7 +101,7 @@ export const useMenageStore = create<MenageState>()(
                 nom, 
                 diminutif, 
                 residence_id,
-                residence:residences(id, nom, diminutif)
+                residence:residences(id, nom, diminutif, zone_id)
               ),
               type_menage:types_menage(id, code, nom),
               validation:validations_check_menage(id, code, nom)

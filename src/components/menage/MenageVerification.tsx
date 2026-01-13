@@ -191,40 +191,59 @@ export default function MenageVerification({ menageId, onClose }: Props) {
       }
 
       // 3. Envoyer message urgent si problème signalé
-      if (hasProbleme && menage.created_by) {
+      if (hasProbleme) {
         const { data: { user } } = await supabase.auth.getUser()
-        
+
         if (user) {
-          let contenu = `🔔 Vérification du ménage: ${apptName}\n`
-          contenu += `📅 Date: ${formatDateLong(date)}\n`
-          contenu += `📋 Type: ${typeBadge.fullLabel}\n\n`
-          
-          if (hasCommentaire) {
-            contenu += `💬 Commentaire de l'agent:\n${commentaireAgent}\n\n`
-          }
-          
-          if (hasPhotos) {
-            contenu += `📷 ${photos.length} photo(s) jointe(s)\n`
+          // Trouver le concierge de la zone (admin avec cette zone assignée)
+          const zoneId = menage.appartement?.residence?.zone_id
+          let conciergeId: string | null = null
+
+          if (zoneId) {
+            const { data: conciergeData } = await supabase
+              .from('users')
+              .select('id')
+              .eq('role', 'admin')
+              .eq('actif', true)
+              .contains('zones_assignees', [zoneId])
+              .limit(1)
+              .single()
+
+            conciergeId = conciergeData?.id || null
           }
 
-          await supabase
-            .from('messages')
-            .insert({
-              expediteur_id: user.id,
-              destinataire_id: menage.created_by,
-              sujet: `⚠️ Problème signalé: ${apptName}`,
-              contenu: contenu,
-              priorite: 'urgent',
-              lu: false,
-              archive: false,
-              private: true,
-              payload: {
-                menage_id: menageId,
-                appartement: apptName,
-                photos: hasPhotos ? photos : null,
-                type: 'probleme_menage'
-              }
-            })
+          if (conciergeId) {
+            let contenu = `🔔 Vérification du ménage: ${apptName}\n`
+            contenu += `📅 Date: ${formatDateLong(date)}\n`
+            contenu += `📋 Type: ${typeBadge.fullLabel}\n\n`
+
+            if (hasCommentaire) {
+              contenu += `💬 Commentaire de l'agent:\n${commentaireAgent}\n\n`
+            }
+
+            if (hasPhotos) {
+              contenu += `📷 ${photos.length} photo(s) jointe(s)\n`
+            }
+
+            await supabase
+              .from('messages')
+              .insert({
+                expediteur_id: user.id,
+                destinataire_id: conciergeId,
+                sujet: `⚠️ Problème signalé: ${apptName}`,
+                contenu: contenu,
+                priorite: 'urgent',
+                lu: false,
+                archive: false,
+                private: true,
+                payload: {
+                  menage_id: menageId,
+                  appartement: apptName,
+                  photos: hasPhotos ? photos : null,
+                  type: 'probleme_menage'
+                }
+              })
+          }
         }
       }
 
