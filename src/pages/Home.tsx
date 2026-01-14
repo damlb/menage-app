@@ -13,10 +13,9 @@ type Tab = 'menages' | 'messages'
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('menages')
   const [user, setUser] = useState<any>(null)
-  const [userPrenom, setUserPrenom] = useState<string>('')
   const [selectedMenageId, setSelectedMenageId] = useState<string | null>(null)
   const { isDark, toggle: toggleTheme } = useThemeStore()
-  const { loadMenages } = useMenageStore()
+  const { loadMenages, userPrenom } = useMenageStore()
 
   useEffect(() => {
     if (isDark) {
@@ -27,20 +26,10 @@ export default function Home() {
   }, [isDark])
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
       if (user) {
         loadMenages(user.id)
-        // Récupérer le prénom de l'utilisateur
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('prenom')
-          .eq('auth_id', user.id)
-          .single()
-        console.log('User data:', userData, 'Error:', userError)
-        if (userData?.prenom) {
-          setUserPrenom(userData.prenom)
-        }
       }
     })
   }, [])

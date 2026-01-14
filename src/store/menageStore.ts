@@ -54,6 +54,7 @@ interface MenageState {
   menages: Menage[]
   residences: Residence[]
   selectedResidence: string
+  userPrenom: string
   loading: boolean
   error: string | null
   loadMenages: (agentId: string) => Promise<void>
@@ -67,6 +68,7 @@ export const useMenageStore = create<MenageState>()(
       menages: [],
       residences: [],
       selectedResidence: '',
+      userPrenom: '',
       loading: false,
       error: null,
 
@@ -76,10 +78,10 @@ export const useMenageStore = create<MenageState>()(
         try {
           console.log("Chargement ménages pour auth_id:", authId)
 
-          // Récupérer l'ID utilisateur et ses zones depuis auth_id
+          // Récupérer l'ID utilisateur, prénom et zones depuis auth_id
           const { data: agentData, error: agentError } = await supabase
             .from("users")
-            .select("id, zones_assignees")
+            .select("id, prenom, zones_assignees")
             .eq("auth_id", authId)
             .single()
 
@@ -90,8 +92,9 @@ export const useMenageStore = create<MenageState>()(
           }
 
           const agentId = agentData.id
+          const userPrenom = agentData.prenom || ''
           const zonesAgent: string[] = agentData.zones_assignees || []
-          console.log("Agent ID trouvé:", agentId)
+          console.log("Agent ID trouvé:", agentId, "Prénom:", userPrenom)
 
           const { data, error: menagesError } = await supabase
             .from("menages")
@@ -149,10 +152,11 @@ export const useMenageStore = create<MenageState>()(
             }
           }
 
-          set({ 
-            menages: menagesList, 
+          set({
+            menages: menagesList,
             residences: residencesList,
-            loading: false 
+            userPrenom,
+            loading: false
           })
         } catch (err) {
           console.error("Erreur:", err)
