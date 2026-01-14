@@ -21,6 +21,8 @@ interface MessageState {
   error: string | null
   loadMessages: () => Promise<void>
   markAsRead: (id: string) => Promise<void>
+  toggleArchive: (id: string) => Promise<void>
+  deleteMessage: (id: string) => Promise<void>
   getUrgentMessage: () => Message | null
 }
 
@@ -55,11 +57,11 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
 
       const userId = userData.id
 
+      // Charger TOUS les messages (actifs + archivés)
       const { data, error: messagesError } = await supabase
         .from("messages")
         .select("*")
         .eq("destinataire_id", userId)
-        .eq("archive", false)
         .order("created_at", { ascending: false })
 
       if (messagesError) {
@@ -69,7 +71,8 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
       }
 
       const messagesList = (data ?? []) as Message[]
-      const unreadCount = messagesList.filter(m => !m.lu).length
+      // Compter seulement les non lus ET non archivés
+      const unreadCount = messagesList.filter(m => !m.lu && !m.archive).length
 
       set({
         messages: messagesList,
@@ -95,13 +98,54 @@ export const useMessageStore = create<MessageState>()((set, get) => ({
 
     const current = get().messages
     const updated = current.map(m => m.id === id ? { ...m, lu: true } : m)
-    const unreadCount = updated.filter(m => !m.lu).length
+    const unreadCount = updated.filter(m => !m.lu && !m.archive).length
+
+    set({ messages: updated, unreadCount })
+  },
+
+  toggleArchive: async (id: string) => {
+    const message = get().messages.find(m => m.id === id)
+    if (!message) return
+
+    const newArchive = !message.archive
+
+    const { error } = await supabase
+      .from("messages")
+      .update({ archive: newArchive })
+      .eq("id", id)
+
+    if (error) {
+      console.error("Erreur archivage:", error)
+      return
+    }
+
+    const current = get().messages
+    const updated = current.map(m => m.id === id ? { ...m, archive: newArchive } : m)
+    const unreadCount = updated.filter(m => !m.lu && !m.archive).length
+
+    set({ messages: updated, unreadCount })
+  },
+
+  deleteMessage: async (id: string) => {
+    const { error } = await supabase
+      .from("messages")
+      .delete()
+      .eq("id", id)
+
+    if (error) {
+      console.error("Erreur suppression:", error)
+      return
+    }
+
+    const current = get().messages
+    const updated = current.filter(m => m.id !== id)
+    const unreadCount = updated.filter(m => !m.lu && !m.archive).length
 
     set({ messages: updated, unreadCount })
   },
 
   getUrgentMessage: () => {
     const messages = get().messages
-    return messages.find(m => m.priorite === 'urgente' && !m.lu) || null
+    return messages.find(m => m.priorite === 'urgente' && !m.lu && !m.archive) || null
   }
 }))
