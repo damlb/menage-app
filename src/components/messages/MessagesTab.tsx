@@ -1,11 +1,10 @@
-import { useEffect } from "react"
-import { useMessageStore } from "../../store/messageStore"
-import { Mail, MailOpen, AlertTriangle, Clock, X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useMessageStore, Message } from "../../store/messageStore"
+import { Mail, MailOpen, AlertTriangle, ChevronRight, X } from "lucide-react"
 
 export default function MessagesTab() {
   const { messages, loading, loadMessages, markAsRead } = useMessageStore()
-  const [selected, setSelected] = useState<any>(null)
+  const [selected, setSelected] = useState<Message | null>(null)
 
   useEffect(() => {
     loadMessages()
@@ -14,58 +13,108 @@ export default function MessagesTab() {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     const now = new Date()
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
     if (diffDays === 0) {
       return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     } else if (diffDays === 1) {
       return 'Hier'
     } else if (diffDays < 7) {
-      return date.toLocaleDateString('fr-FR', { weekday: 'long' })
+      return date.toLocaleDateString('fr-FR', { weekday: 'short' })
     } else {
       return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
     }
   }
 
-  const handleSelect = (msg: any) => {
+  const formatFullDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const handleSelect = (msg: Message) => {
     setSelected(msg)
     if (!msg.lu) {
       markAsRead(msg.id)
     }
   }
 
-  const getPriorityBadge = (priorite: string) => {
-    if (priorite === 'urgente') {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-          <AlertTriangle className="w-3 h-3" />
-          Urgent
-        </span>
-      )
-    }
-    return null
+  const handleClose = () => {
+    setSelected(null)
   }
 
+  // Vue détail d'un message
+  if (selected) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Header avec bouton retour */}
+        <div className="bg-card border-b border-border px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleClose}
+              className="p-2 -ml-2 rounded-lg hover:bg-muted transition-colors"
+            >
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold text-foreground truncate">
+                {selected.sujet || "(Sans sujet)"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {formatFullDate(selected.created_at)}
+              </p>
+            </div>
+            {selected.priorite === 'urgente' && (
+              <span className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+                <AlertTriangle className="w-3 h-3" />
+                Urgent
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Contenu du message */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="bg-card rounded-xl p-4 border border-border">
+            <p className="text-foreground whitespace-pre-wrap leading-relaxed">
+              {selected.contenu}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Vue liste des messages
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-foreground">Messages</h2>
-        <span className="text-sm text-muted-foreground">
-          {messages.filter(m => !m.lu).length} non lu(s)
-        </span>
+        {messages.filter(m => !m.lu).length > 0 && (
+          <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+            {messages.filter(m => !m.lu).length} non lu(s)
+          </span>
+        )}
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
         </div>
       ) : messages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <Mail className="w-8 h-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
+            <Mail className="w-10 h-10 text-muted-foreground" />
           </div>
-          <p className="text-muted-foreground font-medium">Aucun message</p>
-          <p className="text-sm text-muted-foreground mt-1">Vos messages apparaîtront ici</p>
+          <p className="text-foreground font-medium mb-1">Aucun message</p>
+          <p className="text-sm text-muted-foreground">Vos messages apparaîtront ici</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -73,94 +122,51 @@ export default function MessagesTab() {
             <button
               key={m.id}
               onClick={() => handleSelect(m)}
-              className={`w-full text-left bg-card rounded-xl p-4 border transition-all duration-200 ${
+              className={`w-full text-left bg-card rounded-xl p-4 border transition-colors active:scale-[0.98] ${
                 !m.lu
-                  ? 'border-primary/50 shadow-sm'
-                  : 'border-border hover:border-muted-foreground/30'
+                  ? 'border-primary shadow-sm'
+                  : 'border-border'
               }`}
             >
-              <div className="flex items-start gap-3">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                  !m.lu ? 'bg-primary/10' : 'bg-muted'
+              <div className="flex items-center gap-3">
+                {/* Icône */}
+                <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+                  m.priorite === 'urgente'
+                    ? 'bg-red-100'
+                    : !m.lu
+                      ? 'bg-primary/10'
+                      : 'bg-muted'
                 }`}>
                   {!m.lu ? (
-                    <Mail className={`w-5 h-5 ${m.priorite === 'urgente' ? 'text-red-500' : 'text-primary'}`} />
+                    <Mail className={`w-6 h-6 ${m.priorite === 'urgente' ? 'text-red-600' : 'text-primary'}`} />
                   ) : (
-                    <MailOpen className="w-5 h-5 text-muted-foreground" />
+                    <MailOpen className="w-6 h-6 text-muted-foreground" />
                   )}
                 </div>
 
+                {/* Contenu */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className={`font-medium truncate ${!m.lu ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className={`font-semibold truncate ${!m.lu ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {m.sujet || "(Sans sujet)"}
                     </p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-                      <Clock className="w-3 h-3" />
-                      {formatDate(m.created_at)}
-                    </div>
+                    {m.priorite === 'urgente' && (
+                      <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    )}
                   </div>
-
-                  <p className={`text-sm truncate ${!m.lu ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
+                  <p className="text-sm text-muted-foreground truncate mb-1">
                     {m.contenu}
                   </p>
-
-                  {m.priorite === 'urgente' && (
-                    <div className="mt-2">
-                      {getPriorityBadge(m.priorite)}
-                    </div>
-                  )}
+                  <p className="text-xs text-muted-foreground/70">
+                    {formatDate(m.created_at)}
+                  </p>
                 </div>
+
+                {/* Chevron */}
+                <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
               </div>
             </button>
           ))}
-        </div>
-      )}
-
-      {/* Modal de lecture */}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSelected(null)}
-          />
-          <div className="relative bg-card rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-hidden animate-in slide-in-from-bottom duration-300">
-            {/* Header */}
-            <div className="sticky top-0 bg-card border-b border-border px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {selected.priorite === 'urgente' && getPriorityBadge(selected.priorite)}
-                  </div>
-                  <h3 className="font-semibold text-foreground">
-                    {selected.sujet || "(Sans sujet)"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(selected.created_at).toLocaleDateString('fr-FR', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="flex-shrink-0 p-2 rounded-full hover:bg-muted transition-colors"
-                >
-                  <X className="w-5 h-5 text-muted-foreground" />
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-4 overflow-y-auto">
-              <p className="text-foreground whitespace-pre-wrap leading-relaxed">
-                {selected.contenu}
-              </p>
-            </div>
-          </div>
         </div>
       )}
     </div>
