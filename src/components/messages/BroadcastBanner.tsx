@@ -1,40 +1,43 @@
-import { useState, useEffect } from "react"
-import { supabase } from "../../lib/supabase"
+import { useMessageStore } from "../../store/messageStore"
+import { AlertTriangle, X } from "lucide-react"
+import { useState } from "react"
 
 export default function BroadcastBanner() {
-  const [message, setMessage] = useState<any>(null)
-  const [hidden, setHidden] = useState(false)
+  const { messages } = useMessageStore()
+  const [dismissedIds, setDismissedIds] = useState<string[]>([])
 
-  useEffect(() => {
-    loadUrgent()
-  }, [])
+  // Trouver le message urgent non lu et non masqué
+  const urgentMessage = messages.find(
+    m => m.priorite === 'urgente' && !m.lu && !dismissedIds.includes(m.id)
+  )
 
-  const loadUrgent = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  if (!urgentMessage) return null
 
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("destinataire_id", user.id)
-      .eq("priorite", "urgente")
-      .eq("lu", false)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single()
-
-    if (data) setMessage(data)
+  const handleDismiss = () => {
+    setDismissedIds(prev => [...prev, urgentMessage.id])
   }
 
-  if (!message || hidden) return null
-
   return (
-    <div className="bg-red-500 text-white px-4 py-2 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span>📢</span>
-        <span className="text-sm">{message.contenu}</span>
+    <div className="bg-red-500 text-white px-4 py-3 shadow-lg">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 mt-0.5">
+          <AlertTriangle className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm">
+            {urgentMessage.sujet || "Message urgent"}
+          </p>
+          <p className="text-sm text-white/90 mt-0.5 line-clamp-2">
+            {urgentMessage.contenu}
+          </p>
+        </div>
+        <button
+          onClick={handleDismiss}
+          className="flex-shrink-0 p-1 rounded hover:bg-white/20 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
-      <button onClick={() => setHidden(true)} className="text-white/80 hover:text-white">✕</button>
     </div>
   )
 }

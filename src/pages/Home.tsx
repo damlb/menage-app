@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useThemeStore } from '../store/themeStore'
 import { useMenageStore } from '../store/menageStore'
+import { useMessageStore } from '../store/messageStore'
 import MenageCalendar from '../components/menage/MenageCalendar'
 import MenageVerification from '../components/menage/MenageVerification'
 import MessagesTab from '../components/messages/MessagesTab'
@@ -16,6 +17,7 @@ export default function Home() {
   const [selectedMenageId, setSelectedMenageId] = useState<string | null>(null)
   const { isDark, toggle: toggleTheme } = useThemeStore()
   const { loadMenages, userPrenom } = useMenageStore()
+  const { unreadCount, loadMessages } = useMessageStore()
 
   useEffect(() => {
     if (isDark) {
@@ -30,6 +32,7 @@ export default function Home() {
       setUser(user)
       if (user) {
         loadMenages(user.id)
+        loadMessages()
       }
     })
   }, [])
@@ -96,11 +99,18 @@ export default function Home() {
 
           <button
             onClick={() => setActiveTab('messages')}
-            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-lg transition-colors ${
+            className={`flex flex-col items-center gap-1 py-2 px-4 rounded-lg transition-colors relative ${
               activeTab === 'messages' ? 'text-primary' : 'text-muted-foreground'
             }`}
           >
-            <MessageSquare className="w-6 h-6" />
+            <div className="relative">
+              <MessageSquare className="w-6 h-6" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </div>
             <span className="text-xs font-medium">Messages</span>
           </button>
         </div>
