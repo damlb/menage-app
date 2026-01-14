@@ -18,12 +18,44 @@ export default function Login() {
     setError(null)
     setIsLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
     if (error) {
       setError(error.message)
+      setIsLoading(false)
+      return
     }
-    
+
+    // Vérifier le rôle de l'utilisateur
+    if (data.user) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('auth_id', data.user.id)
+        .single()
+
+      const role = userData?.role?.toLowerCase()
+
+      if (role === 'superadmin' || role === 'admin') {
+        // Déconnecter et rediriger vers admin
+        await supabase.auth.signOut()
+        window.location.href = 'https://admin.cieldecase.com'
+        return
+      } else if (role === 'client') {
+        // Déconnecter et rediriger vers site client
+        await supabase.auth.signOut()
+        window.location.href = 'https://cieldecase.com'
+        return
+      } else if (role !== 'agent') {
+        // Rôle inconnu, déconnecter
+        await supabase.auth.signOut()
+        setError('Accès non autorisé')
+        setIsLoading(false)
+        return
+      }
+      // Si rôle = agent, la connexion continue normalement
+    }
+
     setIsLoading(false)
   }
 
