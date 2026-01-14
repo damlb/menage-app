@@ -13,6 +13,7 @@ type Tab = 'menages' | 'messages'
 export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>('menages')
   const [user, setUser] = useState<any>(null)
+  const [userPrenom, setUserPrenom] = useState<string>('')
   const [selectedMenageId, setSelectedMenageId] = useState<string | null>(null)
   const { isDark, toggle: toggleTheme } = useThemeStore()
   const { loadMenages } = useMenageStore()
@@ -26,9 +27,20 @@ export default function Home() {
   }, [isDark])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user)
-      if (user) loadMenages(user.id)
+      if (user) {
+        loadMenages(user.id)
+        // Récupérer le prénom de l'utilisateur
+        const { data: userData } = await supabase
+          .from('users')
+          .select('prenom')
+          .eq('auth_id', user.id)
+          .single()
+        if (userData?.prenom) {
+          setUserPrenom(userData.prenom)
+        }
+      }
     })
   }, [])
 
@@ -49,16 +61,23 @@ export default function Home() {
       <BroadcastBanner />
 
       {/* Header */}
-      <header className="bg-card border-b border-border px-4 py-3 flex items-center justify-between">
-        <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-muted transition-colors">
-          {isDark ? <Sun className="w-5 h-5 text-muted-foreground" /> : <Moon className="w-5 h-5 text-muted-foreground" />}
-        </button>
-        
-        <img src="/icons/logo.svg" alt="Ciel de Case" className="h-10" />
-        
-        <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-muted transition-colors">
-          <LogOut className="w-5 h-5 text-muted-foreground" />
-        </button>
+      <header className="bg-card border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between">
+          <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-muted transition-colors">
+            {isDark ? <Sun className="w-5 h-5 text-muted-foreground" /> : <Moon className="w-5 h-5 text-muted-foreground" />}
+          </button>
+
+          <img src="/icons/logo.svg" alt="Ciel de Case" className="h-10" />
+
+          <button onClick={handleLogout} className="p-2 rounded-lg hover:bg-muted transition-colors">
+            <LogOut className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
+        {userPrenom && (
+          <p className="text-center text-sm text-muted-foreground mt-2">
+            Bonjour {userPrenom}
+          </p>
+        )}
       </header>
 
       {/* Content */}
