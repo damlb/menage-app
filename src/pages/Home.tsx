@@ -32,11 +32,12 @@ export default function Home() {
       if (user) {
         loadMenages(user.id)
         // Récupérer le prénom de l'utilisateur
-        const { data: userData } = await supabase
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .select('prenom')
           .eq('auth_id', user.id)
           .single()
+        console.log('User data:', userData, 'Error:', userError)
         if (userData?.prenom) {
           setUserPrenom(userData.prenom)
         }
